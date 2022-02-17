@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -34,8 +35,8 @@ func (c *Client) Run(ctx context.Context, in *ClientRunInput) error {
 	}
 	inRepo := map[string]RepositoryObject{}
 	for _, obj := range objects {
-		fmt.Printf("in repo: %+v\n", obj.Key)
-		inRepo[strings.TrimRight(obj.Key, ".tar")] = obj
+		fmt.Printf("in repo: %s\n", strings.TrimSuffix(obj.Key, ".tar"))
+		inRepo[strings.TrimSuffix(obj.Key, ".tar")] = obj
 	}
 
 	localObjects, err := c.LocalStorage.List(ctx, in.Path, in.Depth)
@@ -46,24 +47,30 @@ func (c *Client) Run(ctx context.Context, in *ClientRunInput) error {
 	eg, ctx := errgroup.WithContext(ctx)
 	for _, v := range localObjects {
 		localObj := v
-		fmt.Printf("local obj: %+v\n", localObj.Key)
-		repoObj, ok := inRepo[localObj.Key]
-		if ok {
-			delete(inRepo, localObj.Key)
+		key, err := filepath.Rel(in.Path, localObj.Key)
+		if err != nil {
+			return fmt.Errorf("failed to get relative path: %w", err)
 		}
+
+		fmt.Printf("local obj key: %+v\n", key)
+		repoObj, ok := inRepo[key]
+		if ok {
+			delete(inRepo, key)
+		}
+
 		if !ok || repoObj.LastModified.Before(localObj.LastModified) {
 			eg.Go(func() error {
-				fmt.Printf("uploading: %+v\n", localObj.Key)
 				b := bufPool.Get().(*bytes.Buffer)
 				defer func() {
 					b.Reset()
 					bufPool.Put(b)
 				}()
+				fmt.Printf("uploading: %+v\n", localObj.Key+".tar")
 
 				if err := c.Archiver.Do(ctx, localObj.Key, b); err != nil {
 					return fmt.Errorf("failed to archive %q: %w", localObj.Key, err)
 				}
-				if err := c.Repository.Upload(ctx, localObj.Key+".tar", b); err != nil {
+				if err := c.Repository.Upload(ctx, key+".tar", b); err != nil {
 					return fmt.Errorf("failed to upload object %q: %w", localObj.Key, err)
 				}
 				return nil

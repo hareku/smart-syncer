@@ -28,7 +28,7 @@ type NewRepositoryS3Input struct {
 func NewRepositoryS3(in *NewRepositoryS3Input) Repository {
 	return &RepositoryS3{
 		bucket:   in.Bucket,
-		prefix:   strings.Trim(in.Prefix, "/") + "/",
+		prefix:   strings.TrimSuffix(in.Prefix, "/") + "/",
 		api:      in.API,
 		uploader: in.Uploader,
 	}
@@ -43,7 +43,7 @@ func (s *RepositoryS3) List(ctx context.Context) ([]RepositoryObject, error) {
 	}, func(lovo *s3.ListObjectsV2Output, b bool) bool {
 		for _, o := range lovo.Contents {
 			res = append(res, RepositoryObject{
-				Key:          strings.TrimLeft(*o.Key, s.prefix),
+				Key:          strings.TrimPrefix(*o.Key, s.prefix),
 				LastModified: *o.LastModified,
 			})
 		}
@@ -58,7 +58,7 @@ func (s *RepositoryS3) List(ctx context.Context) ([]RepositoryObject, error) {
 func (s *RepositoryS3) Upload(ctx context.Context, key string, r io.Reader) error {
 	_, err := s.uploader.UploadWithContext(ctx, &s3manager.UploadInput{
 		Bucket: &s.bucket,
-		Key:    aws.String(strings.TrimLeft(s.prefix+key, "/")),
+		Key:    aws.String(strings.TrimPrefix(s.prefix+key, "/")),
 		Body:   r,
 	})
 	if err != nil {
