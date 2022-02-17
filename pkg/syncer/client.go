@@ -22,6 +22,7 @@ type Client struct {
 	LocalStorage LocalStorage
 	Repository   Repository
 	Archiver     Archiver
+	Dryrun       bool
 }
 
 type ClientRunInput struct {
@@ -68,6 +69,9 @@ func (c *Client) Run(ctx context.Context, in *ClientRunInput) error {
 				}()
 
 				log.Printf("Uploading: %s", localObj.Key)
+				if c.Dryrun {
+					return nil
+				}
 				if err := c.Archiver.Do(ctx, localObj.Key, b); err != nil {
 					return fmt.Errorf("failed to archive %q: %w", localObj.Key, err)
 				}
@@ -89,8 +93,10 @@ func (c *Client) Run(ctx context.Context, in *ClientRunInput) error {
 			keys = append(keys, v.Key)
 			log.Printf("Deleting: %s", v.Key)
 		}
-		if err := c.Repository.Delete(ctx, keys); err != nil {
-			return fmt.Errorf("failed to delete objects: %w", err)
+		if !c.Dryrun {
+			if err := c.Repository.Delete(ctx, keys); err != nil {
+				return fmt.Errorf("failed to delete objects: %w", err)
+			}
 		}
 	}
 
