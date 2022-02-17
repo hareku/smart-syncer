@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -11,15 +12,15 @@ import (
 )
 
 type RepositoryS3 struct {
-	bucket   *string
-	prefix   *string
+	bucket   string
+	prefix   string
 	api      *s3.S3
 	uploader *s3manager.Uploader
 }
 
 type NewRepositoryS3Input struct {
-	Bucket   *string
-	Prefix   *string
+	Bucket   string
+	Prefix   string
 	API      *s3.S3
 	Uploader *s3manager.Uploader
 }
@@ -27,7 +28,7 @@ type NewRepositoryS3Input struct {
 func NewRepositoryS3(in *NewRepositoryS3Input) Repository {
 	return &RepositoryS3{
 		bucket:   in.Bucket,
-		prefix:   in.Prefix,
+		prefix:   strings.Trim(in.Prefix, "/") + "/",
 		api:      in.API,
 		uploader: in.Uploader,
 	}
@@ -37,12 +38,12 @@ func (s *RepositoryS3) List(ctx context.Context) ([]RepositoryObject, error) {
 	res := []RepositoryObject{}
 
 	err := s.api.ListObjectsV2PagesWithContext(ctx, &s3.ListObjectsV2Input{
-		Bucket: s.bucket,
-		Prefix: s.prefix,
+		Bucket: &s.bucket,
+		Prefix: &s.prefix,
 	}, func(lovo *s3.ListObjectsV2Output, b bool) bool {
 		for _, o := range lovo.Contents {
 			res = append(res, RepositoryObject{
-				Key:          *o.Key,
+				Key:          strings.TrimLeft(*o.Key, s.prefix),
 				LastModified: *o.LastModified,
 			})
 		}
@@ -56,8 +57,8 @@ func (s *RepositoryS3) List(ctx context.Context) ([]RepositoryObject, error) {
 
 func (s *RepositoryS3) Upload(ctx context.Context, key string, r io.Reader) error {
 	_, err := s.uploader.UploadWithContext(ctx, &s3manager.UploadInput{
-		Bucket: s.bucket,
-		Key:    aws.String(key),
+		Bucket: &s.bucket,
+		Key:    aws.String(strings.TrimLeft(s.prefix+key, "/")),
 		Body:   r,
 	})
 	if err != nil {

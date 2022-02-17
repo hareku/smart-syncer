@@ -18,8 +18,8 @@ func main() {
 		LocalStorage: syncer.NewLocalStorage(),
 		Archiver:     syncer.NewArchiver(),
 		Repository: syncer.NewRepositoryS3(&syncer.NewRepositoryS3Input{
-			Bucket:   aws.String("h4reku-backup"),
-			Prefix:   aws.String("Doujinshi"),
+			Bucket:   "syncer-bucket",
+			Prefix:   "prefix",
 			API:      s3Client,
 			Uploader: s3manager.NewUploaderWithClient(s3Client),
 		}),
@@ -27,7 +27,7 @@ func main() {
 
 	if err := client.Run(context.Background(), &syncer.ClientRunInput{
 		// Path: "D:/User/Desktop/同人誌",
-		Path:  "D:/syncer-test",
+		Path:  "D:/Code/github/smart-syncer/syncer-test",
 		Depth: 1,
 	}); err != nil {
 		log.Fatal(err)

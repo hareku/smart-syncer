@@ -34,6 +34,7 @@ func (c *Client) Run(ctx context.Context, in *ClientRunInput) error {
 	}
 	inRepo := map[string]RepositoryObject{}
 	for _, obj := range objects {
+		fmt.Printf("in repo: %+v\n", obj.Key)
 		inRepo[strings.TrimRight(obj.Key, ".tar")] = obj
 	}
 
@@ -43,13 +44,16 @@ func (c *Client) Run(ctx context.Context, in *ClientRunInput) error {
 	}
 
 	eg, ctx := errgroup.WithContext(ctx)
-	for _, localObj := range localObjects {
-		obj, ok := inRepo[localObj.Key]
+	for _, v := range localObjects {
+		localObj := v
+		fmt.Printf("local obj: %+v\n", localObj.Key)
+		repoObj, ok := inRepo[localObj.Key]
 		if ok {
 			delete(inRepo, localObj.Key)
 		}
-		if !ok || obj.LastModified.Before(localObj.LastModified) {
+		if !ok || repoObj.LastModified.Before(localObj.LastModified) {
 			eg.Go(func() error {
+				fmt.Printf("uploading: %+v\n", localObj.Key)
 				b := bufPool.Get().(*bytes.Buffer)
 				defer func() {
 					b.Reset()
@@ -59,7 +63,7 @@ func (c *Client) Run(ctx context.Context, in *ClientRunInput) error {
 				if err := c.Archiver.Do(ctx, localObj.Key, b); err != nil {
 					return fmt.Errorf("failed to archive %q: %w", localObj.Key, err)
 				}
-				if err := c.Repository.Upload(ctx, obj.Key+".tar", b); err != nil {
+				if err := c.Repository.Upload(ctx, localObj.Key+".tar", b); err != nil {
 					return fmt.Errorf("failed to upload object %q: %w", localObj.Key, err)
 				}
 				return nil
