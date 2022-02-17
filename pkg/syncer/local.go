@@ -40,16 +40,22 @@ func (s *localStorage) recurse(ctx context.Context, path string, depth int, curr
 		return fmt.Errorf("failed to read %q as a directory: %w", path, err)
 	}
 	for _, e := range entries {
+		key := filepath.Join(path, e.Name())
 		if e.IsDir() && currentDepth < depth {
-			nextPath := filepath.Join(path, e.Name())
-			if err := s.recurse(ctx, nextPath, depth, currentDepth+1); err != nil {
-				return fmt.Errorf("error in path %q depth %d: %w", nextPath, currentDepth+1, err)
+			if err := s.recurse(ctx, key, depth, currentDepth+1); err != nil {
+				return fmt.Errorf("error in path %q depth %d: %w", key, currentDepth+1, err)
 			}
 			continue
 		}
 
+		info, err := e.Info()
+		if err != nil {
+			return fmt.Errorf("failed to get info of %q: %w", key, err)
+		}
+
 		s.res = append(s.res, LocalObject{
-			Key: e.Name(),
+			Key:          key,
+			LastModified: info.ModTime(),
 		})
 	}
 	return nil
