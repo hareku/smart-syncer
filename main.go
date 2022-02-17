@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -22,7 +23,7 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-	objects, err := listS3(ctx)
+	objects, err := listLocal(ctx)
 	if err != nil {
 		return err
 	}
@@ -33,27 +34,24 @@ func run(ctx context.Context) error {
 	return nil
 }
 
-type Object struct {
+type LocalObject struct {
 	Key          string
 	LastModified time.Time
 }
 
-func listS3(ctx context.Context) ([]Object, error) {
-	res := []Object{}
+func listLocal(ctx context.Context) ([]LocalObject, error) {
+	res := []LocalObject{}
 
-	err := c.ListObjectsV2PagesWithContext(ctx, &s3.ListObjectsV2Input{
-		Bucket: aws.String("h4reku-backup"),
-	}, func(lovo *s3.ListObjectsV2Output, b bool) bool {
-		for _, o := range lovo.Contents {
-			res = append(res, Object{
-				Key:          *o.Key,
-				LastModified: *o.LastModified,
-			})
-		}
-		return true
-	})
+	files, err := os.ReadDir("D:/User/Desktop/同人誌")
 	if err != nil {
 		return nil, err
 	}
+	for _, f := range files {
+		res = append(res, LocalObject{
+			Key:          f.Name(),
+			LastModified: time.Now(),
+		})
+	}
+
 	return res, nil
 }
