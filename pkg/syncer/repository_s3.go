@@ -1,4 +1,4 @@
-package storage
+package syncer
 
 import (
 	"context"
@@ -8,18 +8,18 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-type StorageS3 struct {
+type RepositoryS3 struct {
 	api *s3.S3
 }
 
-func (s *StorageS3) List(ctx context.Context) ([]Object, error) {
-	res := []Object{}
+func (s *RepositoryS3) List(ctx context.Context) ([]RepositoryObject, error) {
+	res := []RepositoryObject{}
 
 	err := s.api.ListObjectsV2PagesWithContext(ctx, &s3.ListObjectsV2Input{
 		Bucket: aws.String("h4reku-backup"),
 	}, func(lovo *s3.ListObjectsV2Output, b bool) bool {
 		for _, o := range lovo.Contents {
-			res = append(res, Object{
+			res = append(res, RepositoryObject{
 				Key:          *o.Key,
 				LastModified: *o.LastModified,
 			})

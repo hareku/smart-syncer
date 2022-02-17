@@ -4,18 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
-	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/hareku/smart-syncer/pkg/syncer"
 )
 
-var c *s3.S3
-
 func main() {
-	c = s3.New(session.Must(session.NewSession(aws.NewConfig().WithRegion("us-west-2"))))
+	// c = s3.New(session.Must(session.NewSession(aws.NewConfig().WithRegion("us-west-2"))))
 
 	if err := run(context.Background()); err != nil {
 		log.Fatal(err)
@@ -23,7 +17,9 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-	objects, err := listLocal(ctx)
+	storage := syncer.NewLocalStorage()
+
+	objects, err := storage.List(ctx, "D:/syncer-test", 1)
 	if err != nil {
 		return err
 	}
@@ -32,26 +28,4 @@ func run(ctx context.Context) error {
 		fmt.Println(v.Key)
 	}
 	return nil
-}
-
-type LocalObject struct {
-	Key          string
-	LastModified time.Time
-}
-
-func listLocal(ctx context.Context) ([]LocalObject, error) {
-	res := []LocalObject{}
-
-	files, err := os.ReadDir("D:/User/Desktop/同人誌")
-	if err != nil {
-		return nil, err
-	}
-	for _, f := range files {
-		res = append(res, LocalObject{
-			Key:          f.Name(),
-			LastModified: time.Now(),
-		})
-	}
-
-	return res, nil
 }
