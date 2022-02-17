@@ -14,4 +14,5 @@ type RepositoryObject struct {
 type Repository interface {
 	List(ctx context.Context) ([]RepositoryObject, error)
 	Upload(ctx context.Context, key string, r io.Reader) error
+	Delete(ctx context.Context, keys []string) error
 }

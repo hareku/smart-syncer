@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 )
@@ -28,31 +27,35 @@ func (a *archiver) Do(ctx context.Context, root string, w io.Writer) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("%v: %s", d.IsDir(), path)
 		if d.IsDir() {
 			return nil
 		}
 
-		info, err := d.Info()
+		rel, err := filepath.Rel(root, path)
 		if err != nil {
-			return fmt.Errorf("failed to get info %q: %w", path, err)
+			return fmt.Errorf("failed to get relative path: %w", err)
 		}
-		h := &tar.Header{
-			Name: path,
-			Size: info.Size(),
-		}
-		err = tw.WriteHeader(h)
-		if err != nil {
-			return fmt.Errorf("failed to write tar header %+v: %w", h, err)
+
+		// if rel is ".", root is file (not dir).
+		if rel == "." {
+			rel = d.Name()
 		}
 
 		f, err := os.ReadFile(path)
 		if err != nil {
 			return fmt.Errorf("failed to read file %q: %w", path, err)
 		}
-		_, err = tw.Write(f)
-		if err != nil {
-			return err
+
+		h := &tar.Header{
+			Name: rel,
+			Size: int64(len(f)),
+		}
+		if err := tw.WriteHeader(h); err != nil {
+			return fmt.Errorf("failed to write tar header %+v: %w", h, err)
+		}
+
+		if _, err := tw.Write(f); err != nil {
+			return fmt.Errorf("failed to write tar content: %w", err)
 		}
 		return nil
 	})
@@ -60,7 +63,7 @@ func (a *archiver) Do(ctx context.Context, root string, w io.Writer) error {
 		return err
 	}
 	if err := tw.Close(); err != nil {
-		return err
+		return fmt.Errorf("failed to close tar writer: %w", err)
 	}
 	return nil
 }

@@ -65,3 +65,22 @@ func (s *RepositoryS3) Upload(ctx context.Context, key string, r io.Reader) erro
 	}
 	return nil
 }
+
+func (s *RepositoryS3) Delete(ctx context.Context, keys []string) error {
+	ids := make([]*s3.ObjectIdentifier, len(keys))
+	for i, k := range keys {
+		ids[i] = &s3.ObjectIdentifier{
+			Key: aws.String(k),
+		}
+	}
+
+	_, err := s.api.DeleteObjects(&s3.DeleteObjectsInput{
+		Delete: &s3.Delete{
+			Objects: ids,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete objects: %w", err)
+	}
+	return nil
+}
