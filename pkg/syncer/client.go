@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -29,19 +30,19 @@ type ClientRunInput struct {
 }
 
 func (c *Client) Run(ctx context.Context, in *ClientRunInput) error {
-	objects, err := c.Repository.List(ctx)
+	repoObjects, err := c.Repository.List(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to list objects from repository: %w", err)
 	}
 	inRepo := map[string]RepositoryObject{}
-	for _, obj := range objects {
-		fmt.Printf("in repo: %s\n", strings.TrimSuffix(obj.Key, ".tar"))
+	for _, obj := range repoObjects {
+		log.Printf("Object in repo: %s", strings.TrimSuffix(obj.Key, ".tar"))
 		inRepo[strings.TrimSuffix(obj.Key, ".tar")] = obj
 	}
 
 	localObjects, err := c.LocalStorage.List(ctx, in.Path, in.Depth)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to list objects from local storage: %w", err)
 	}
 
 	eg, ctx := errgroup.WithContext(ctx)
@@ -49,10 +50,10 @@ func (c *Client) Run(ctx context.Context, in *ClientRunInput) error {
 		localObj := v
 		key, err := filepath.Rel(in.Path, localObj.Key)
 		if err != nil {
-			return fmt.Errorf("failed to get relative path: %w", err)
+			return fmt.Errorf("failed to get relative path of local object: %w", err)
 		}
 
-		fmt.Printf("local obj key: %+v\n", key)
+		log.Printf("Object in local: %s", key)
 		repoObj, ok := inRepo[key]
 		if ok {
 			delete(inRepo, key)
@@ -65,13 +66,13 @@ func (c *Client) Run(ctx context.Context, in *ClientRunInput) error {
 					b.Reset()
 					bufPool.Put(b)
 				}()
-				fmt.Printf("uploading: %+v\n", localObj.Key+".tar")
 
+				log.Printf("Uploading: %s", localObj.Key)
 				if err := c.Archiver.Do(ctx, localObj.Key, b); err != nil {
 					return fmt.Errorf("failed to archive %q: %w", localObj.Key, err)
 				}
 				if err := c.Repository.Upload(ctx, key+".tar", b); err != nil {
-					return fmt.Errorf("failed to upload object %q: %w", localObj.Key, err)
+					return fmt.Errorf("failed to upload %q to repository: %w", localObj.Key, err)
 				}
 				return nil
 			})
@@ -79,7 +80,19 @@ func (c *Client) Run(ctx context.Context, in *ClientRunInput) error {
 	}
 
 	if err := eg.Wait(); err != nil {
-		return err
+		return fmt.Errorf("errgroup failed: %w", err)
 	}
+
+	if len(inRepo) > 0 {
+		keys := make([]string, len(inRepo))
+		for _, v := range inRepo {
+			keys = append(keys, v.Key)
+			log.Printf("Deleting: %s", v.Key)
+		}
+		if err := c.Repository.Delete(ctx, keys); err != nil {
+			return fmt.Errorf("failed to delete objects: %w", err)
+		}
+	}
+
 	return nil
 }

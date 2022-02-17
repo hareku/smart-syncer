@@ -13,7 +13,7 @@ import (
 
 type RepositoryS3 struct {
 	bucket   string
-	prefix   string
+	prefix   string // prefix of S3 bucket which has "/" suffix.
 	api      *s3.S3
 	uploader *s3manager.Uploader
 }
@@ -28,7 +28,7 @@ type NewRepositoryS3Input struct {
 func NewRepositoryS3(in *NewRepositoryS3Input) Repository {
 	return &RepositoryS3{
 		bucket:   in.Bucket,
-		prefix:   strings.TrimSuffix(in.Prefix, "/") + "/",
+		prefix:   strings.Trim(in.Prefix, "/") + "/",
 		api:      in.API,
 		uploader: in.Uploader,
 	}
@@ -50,7 +50,7 @@ func (s *RepositoryS3) List(ctx context.Context) ([]RepositoryObject, error) {
 		return true
 	})
 	if err != nil {
-		return nil, fmt.Errorf("s3 api error: %w", err)
+		return nil, fmt.Errorf("s3 listing objects failed: %w", err)
 	}
 	return res, nil
 }
@@ -71,11 +71,12 @@ func (s *RepositoryS3) Delete(ctx context.Context, keys []string) error {
 	ids := make([]*s3.ObjectIdentifier, len(keys))
 	for i, k := range keys {
 		ids[i] = &s3.ObjectIdentifier{
-			Key: aws.String(k),
+			Key: aws.String(s.prefix + k),
 		}
 	}
 
 	_, err := s.api.DeleteObjects(&s3.DeleteObjectsInput{
+		Bucket: &s.bucket,
 		Delete: &s3.Delete{
 			Objects: ids,
 		},
