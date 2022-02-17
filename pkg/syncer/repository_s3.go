@@ -62,7 +62,7 @@ func (s *RepositoryS3) Upload(ctx context.Context, key string, r io.Reader) erro
 		Body:   r,
 	})
 	if err != nil {
-		return fmt.Errorf("s3 uploader failed: %w", err)
+		return fmt.Errorf("s3 uploading failed: %w", err)
 	}
 	return nil
 }
