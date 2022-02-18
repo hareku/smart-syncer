@@ -22,7 +22,7 @@ func NewArchiver() Archiver {
 // pool for io.CopyBuffer
 var bufPool = sync.Pool{
 	New: func() interface{} {
-		s := make([]byte, 32*1024)
+		s := make([]byte, 128*1024)
 		return &s
 	},
 }
