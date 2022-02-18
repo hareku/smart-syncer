@@ -1,22 +1,15 @@
 package syncer
 
 import (
-	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"golang.org/x/sync/errgroup"
 )
-
-var bufPool = sync.Pool{
-	New: func() interface{} {
-		return new(bytes.Buffer)
-	},
-}
 
 type Client struct {
 	LocalStorage LocalStorage
@@ -59,28 +52,31 @@ func (c *Client) Run(ctx context.Context, in *ClientRunInput) error {
 		if ok {
 			delete(inRepo, key)
 		}
-
-		if !ok || repoObj.LastModified.Before(localObj.LastModified) {
-			eg.Go(func() error {
-				b := bufPool.Get().(*bytes.Buffer)
-				defer func() {
-					b.Reset()
-					bufPool.Put(b)
-				}()
-
-				log.Printf("Uploading: %s", localObj.Key)
-				if c.Dryrun {
-					return nil
-				}
-				if err := c.Archiver.Do(ctx, localObj.Key, b); err != nil {
-					return fmt.Errorf("failed to archive %q: %w", localObj.Key, err)
-				}
-				if err := c.Repository.Upload(ctx, key+".tar", b); err != nil {
-					return fmt.Errorf("failed to upload %q to repository: %w", localObj.Key, err)
-				}
-				return nil
-			})
+		if ok && localObj.LastModified.Before(repoObj.LastModified) {
+			continue
 		}
+
+		log.Printf("Uploading: %s", localObj.Key)
+		if c.Dryrun {
+			continue
+		}
+
+		pr, pw := io.Pipe()
+
+		eg.Go(func() error {
+			defer pw.Close()
+			if err := c.Archiver.Do(ctx, localObj.Key, pw); err != nil {
+				return fmt.Errorf("failed to archive %q: %w", localObj.Key, err)
+			}
+			return nil
+		})
+
+		eg.Go(func() error {
+			if err := c.Repository.Upload(ctx, key+".tar", pr); err != nil {
+				return fmt.Errorf("failed to upload %q to repository: %w", localObj.Key, err)
+			}
+			return nil
+		})
 	}
 
 	if err := eg.Wait(); err != nil {

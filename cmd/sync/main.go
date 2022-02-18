@@ -19,7 +19,7 @@ func main() {
 		Archiver:     syncer.NewArchiver(),
 		Repository: syncer.NewRepositoryS3(&syncer.NewRepositoryS3Input{
 			Bucket:   "syncer-bucket",
-			Prefix:   "たまたま山脈",
+			Prefix:   "test",
 			API:      s3Client,
 			Uploader: s3manager.NewUploaderWithClient(s3Client),
 		}),
@@ -27,10 +27,10 @@ func main() {
 	}
 
 	if err := client.Run(context.Background(), &syncer.ClientRunInput{
-		Path:  "D:/User/Desktop/同人誌/たまたま山脈",
-		Depth: 1,
-		// Path:  "D:/Code/github/smart-syncer/syncer-test",
+		// Path:  "D:/User/Desktop/同人誌/たまたま山脈",
 		// Depth: 1,
+		Path:  "D:/Code/github/smart-syncer/syncer-test",
+		Depth: 1,
 	}); err != nil {
 		log.Fatal(err)
 	}
