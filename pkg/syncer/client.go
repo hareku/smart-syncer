@@ -47,7 +47,7 @@ func (c *Client) Run(ctx context.Context, in *ClientRunInput) error {
 			return fmt.Errorf("failed to get relative path of local object: %w", err)
 		}
 
-		log.Printf("Object in local: %s", key)
+		// log.Printf("Object in local: %s", key)
 		repoObj, ok := inRepo[key]
 		if ok {
 			delete(inRepo, key)
@@ -62,7 +62,6 @@ func (c *Client) Run(ctx context.Context, in *ClientRunInput) error {
 		}
 
 		pr, pw := io.Pipe()
-
 		eg.Go(func() error {
 			defer pw.Close()
 			if err := c.Archiver.Do(ctx, localObj.Key, pw); err != nil {
@@ -70,7 +69,6 @@ func (c *Client) Run(ctx context.Context, in *ClientRunInput) error {
 			}
 			return nil
 		})
-
 		eg.Go(func() error {
 			if err := c.Repository.Upload(ctx, key+".tar", pr); err != nil {
 				return fmt.Errorf("failed to upload %q to repository: %w", localObj.Key, err)

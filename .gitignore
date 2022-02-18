@@ -16,3 +16,6 @@
 
 # built directory
 build/
+
+# docker
+docker/data/

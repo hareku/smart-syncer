@@ -3,8 +3,11 @@ package main
 import (
 	"context"
 	"log"
+	"runtime"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -12,26 +15,40 @@ import (
 )
 
 func main() {
-	s3Client := s3.New(session.Must(session.NewSession(aws.NewConfig().WithRegion("us-west-2"))))
+	cfg := aws.Config{
+		Credentials:      credentials.NewStaticCredentials("minio", "minio123", ""),
+		Region:           aws.String("ap-northeast-1"),
+		Endpoint:         aws.String("http://127.0.0.1:9000"),
+		S3ForcePathStyle: aws.Bool(true),
+	}
+
+	s3Client := s3.New(session.Must(session.NewSession(&cfg)))
+	// s3Client := s3.New(session.Must(session.NewSession(aws.NewConfig().WithRegion("us-west-2"))))
 
 	client := &syncer.Client{
 		LocalStorage: syncer.NewLocalStorage(),
 		Archiver:     syncer.NewArchiver(),
 		Repository: syncer.NewRepositoryS3(&syncer.NewRepositoryS3Input{
-			Bucket:   "syncer-bucket",
-			Prefix:   "test",
+			Bucket:   "testing",
+			Prefix:   "Doujinshi2",
 			API:      s3Client,
 			Uploader: s3manager.NewUploaderWithClient(s3Client),
 		}),
 		Dryrun: false,
 	}
 
+	s := time.Now()
 	if err := client.Run(context.Background(), &syncer.ClientRunInput{
-		// Path:  "D:/User/Desktop/同人誌/たまたま山脈",
+		Path:  "D:/User/Desktop/同人誌2",
+		Depth: 2,
+		// Path:  "D:/Code/github/smart-syncer/syncer-test",
 		// Depth: 1,
-		Path:  "D:/Code/github/smart-syncer/syncer-test",
-		Depth: 1,
 	}); err != nil {
 		log.Fatal(err)
 	}
+	log.Printf("done in %v", time.Since(s))
+
+	stat := runtime.MemStats{}
+	runtime.ReadMemStats(&stat)
+	log.Printf("mem stats: %+v", stat)
 }

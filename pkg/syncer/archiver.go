@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sync"
 )
 
 type Archiver interface {
@@ -16,6 +17,14 @@ type Archiver interface {
 
 func NewArchiver() Archiver {
 	return &archiver{}
+}
+
+// pool for io.CopyBuffer
+var bufPool = sync.Pool{
+	New: func() interface{} {
+		s := make([]byte, 32*1024)
+		return &s
+	},
 }
 
 type archiver struct{}
@@ -35,26 +44,34 @@ func (a *archiver) Do(ctx context.Context, root string, w io.Writer) error {
 		if err != nil {
 			return fmt.Errorf("failed to get relative path: %w", err)
 		}
-
 		// if rel is ".", root is file (not dir).
 		if rel == "." {
 			rel = d.Name()
 		}
 
-		f, err := os.ReadFile(path)
+		f, err := os.Open(path)
 		if err != nil {
 			return fmt.Errorf("failed to read file %q: %w", path, err)
 		}
+		defer f.Close()
 
-		h := &tar.Header{
-			Name: rel,
-			Size: int64(len(f)),
+		info, err := f.Stat()
+		if err != nil {
+			return fmt.Errorf("failed to stat file %q: %w", path, err)
 		}
+		h, err := tar.FileInfoHeader(info, "")
+		if err != nil {
+			return fmt.Errorf("failed to create tar header for %q: %w", path, err)
+		}
+		h.Name = rel
 		if err := tw.WriteHeader(h); err != nil {
 			return fmt.Errorf("failed to write tar header %+v: %w", h, err)
 		}
 
-		if _, err := tw.Write(f); err != nil {
+		buf := bufPool.Get().(*[]byte)
+		defer bufPool.Put(buf)
+
+		if _, err := io.CopyBuffer(tw, f, *buf); err != nil {
 			return fmt.Errorf("failed to write tar content: %w", err)
 		}
 		return nil
