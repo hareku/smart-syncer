@@ -25,14 +25,21 @@ func main() {
 	s3Client := s3.New(session.Must(session.NewSession(&cfg)))
 	// s3Client := s3.New(session.Must(session.NewSession(aws.NewConfig().WithRegion("us-west-2"))))
 
+	concurrency := runtime.NumCPU()
+	log.Printf("Running concurrency: %d", concurrency)
+
+	uploader := s3manager.NewUploaderWithClient(s3Client)
+	uploader.Concurrency = concurrency
+
 	client := &syncer.Client{
+		Concurrency:  concurrency,
 		LocalStorage: syncer.NewLocalStorage(),
 		Archiver:     syncer.NewArchiver(),
 		Repository: syncer.NewRepositoryS3(&syncer.NewRepositoryS3Input{
 			Bucket:   "testing",
 			Prefix:   "Doujinshi2",
 			API:      s3Client,
-			Uploader: s3manager.NewUploaderWithClient(s3Client),
+			Uploader: uploader,
 		}),
 		Dryrun: false,
 	}
