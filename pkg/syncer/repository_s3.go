@@ -8,21 +8,23 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager/s3manageriface"
 )
 
 type RepositoryS3 struct {
 	bucket   string
-	prefix   string // prefix of S3 bucket which has "/" suffix.
-	api      *s3.S3
-	uploader *s3manager.Uploader
+	prefix   string // prefix with "/" suffix of S3 bucket
+	api      s3iface.S3API
+	uploader s3manageriface.UploaderAPI
 }
 
 type NewRepositoryS3Input struct {
 	Bucket   string
 	Prefix   string
-	API      *s3.S3
-	Uploader *s3manager.Uploader
+	API      s3iface.S3API
+	Uploader s3manageriface.UploaderAPI
 }
 
 func NewRepositoryS3(in *NewRepositoryS3Input) Repository {
