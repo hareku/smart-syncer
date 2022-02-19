@@ -20,44 +20,42 @@ func NewLocalStorage() LocalStorage {
 	return &localStorage{}
 }
 
-type localStorage struct {
-	res []LocalObject
-}
+type localStorage struct{}
 
 func (s *localStorage) List(ctx context.Context, root string, depth int) ([]LocalObject, error) {
-	s.res = []LocalObject{}
+	res := []LocalObject{}
 
-	if err := s.recurse(ctx, root, root, depth, 1); err != nil {
+	if err := s.recurse(ctx, root, root, depth, 1, &res); err != nil {
 		return nil, fmt.Errorf("recursive walking failed: %w", err)
 	}
-	return s.res, nil
+	return res, nil
 }
 
-func (s *localStorage) recurse(ctx context.Context, root string, path string, depth int, currentDepth int) error {
+func (s *localStorage) recurse(ctx context.Context, root string, path string, depth int, currentDepth int, res *[]LocalObject) error {
 	entries, err := os.ReadDir(path)
 	if err != nil {
 		return fmt.Errorf("failed to read %q as a directory: %w", path, err)
 	}
 	for _, e := range entries {
-		key := filepath.Join(path, e.Name())
+		curPath := filepath.Join(path, e.Name())
 		if e.IsDir() && currentDepth < depth {
-			if err := s.recurse(ctx, root, key, depth, currentDepth+1); err != nil {
-				return fmt.Errorf("error in path %q depth %d: %w", key, currentDepth+1, err)
+			if err := s.recurse(ctx, root, curPath, depth, currentDepth+1, res); err != nil {
+				return fmt.Errorf("error in path %q depth %d: %w", curPath, currentDepth+1, err)
 			}
 			continue
 		}
 
 		info, err := e.Info()
 		if err != nil {
-			return fmt.Errorf("failed to get info of %q: %w", key, err)
+			return fmt.Errorf("failed to get info of %q: %w", curPath, err)
 		}
-		key2, err := filepath.Rel(root, key)
+		key, err := filepath.Rel(root, curPath)
 		if err != nil {
 			return fmt.Errorf("failed to get relative path: %w", err)
 		}
 
-		s.res = append(s.res, LocalObject{
-			Key:              key2,
+		*res = append(*res, LocalObject{
+			Key:              key,
 			LastModifiedUnix: info.ModTime().Unix(),
 		})
 	}
