@@ -55,7 +55,7 @@ func (s *localStorage) recurse(ctx context.Context, path string, depth int, curr
 
 		s.res = append(s.res, LocalObject{
 			Key:          key,
-			LastModified: info.ModTime(),
+			LastModified: info.ModTime().UTC(),
 		})
 	}
 	return nil
