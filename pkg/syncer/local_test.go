@@ -20,10 +20,10 @@ func TestLocalStorage_List(t *testing.T) {
 	})
 
 	writeFile := func(filename string) error {
-		return os.WriteFile(filepath.Join(dir, filename), []byte(fmt.Sprintf("data for %s", filename)), 0655)
+		return os.WriteFile(filepath.Join(dir, filename), []byte(fmt.Sprintf("data for %s", filename)), 0777)
 	}
 	mkdir := func(name string) error {
-		return os.Mkdir(filepath.Join(dir, name), 0655)
+		return os.Mkdir(filepath.Join(dir, name), 0777)
 	}
 
 	require.NoError(t, writeFile("abc"))

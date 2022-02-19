@@ -26,9 +26,9 @@ func TestArchiver_Do(t *testing.T) {
 		assert.NoError(t, os.RemoveAll(targetDir))
 	})
 
-	require.NoError(t, os.WriteFile(filepath.Join(targetDir, "abc"), []byte("data for abc"), 0655))
-	require.NoError(t, os.Mkdir(filepath.Join(targetDir, "def"), 0655))
-	require.NoError(t, os.WriteFile(filepath.Join(targetDir, "def/ghi"), []byte("data for ghi"), 0655))
+	require.NoError(t, os.WriteFile(filepath.Join(targetDir, "abc"), []byte("data for abc"), 0777))
+	require.NoError(t, os.Mkdir(filepath.Join(targetDir, "def"), 0777))
+	require.NoError(t, os.WriteFile(filepath.Join(targetDir, "def/ghi"), []byte("data for ghi"), 0777))
 
 	tempDir, err := os.MkdirTemp("", "archiver-do-test-temp")
 	require.NoError(t, err)
