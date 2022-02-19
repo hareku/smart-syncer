@@ -2,7 +2,7 @@ before:
   hooks:
     - go mod download
 builds:
-  - main: ./cmd/fanbox-dl/main.go
+  - main: ./cmd/smart-syncer/main.go
     env:
       - GO111MODULE=on
       - CGO_ENABLED=0
