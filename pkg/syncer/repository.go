@@ -3,12 +3,11 @@ package syncer
 import (
 	"context"
 	"io"
-	"time"
 )
 
 type RepositoryObject struct {
-	Key          string
-	LastModified time.Time
+	Key              string
+	LastModifiedUnix int64
 }
 
 type Repository interface {

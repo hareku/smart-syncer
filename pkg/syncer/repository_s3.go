@@ -43,8 +43,8 @@ func (s *RepositoryS3) List(ctx context.Context) ([]RepositoryObject, error) {
 	}, func(lovo *s3.ListObjectsV2Output, b bool) bool {
 		for _, o := range lovo.Contents {
 			res = append(res, RepositoryObject{
-				Key:          strings.TrimPrefix(*o.Key, s.prefix),
-				LastModified: *o.LastModified,
+				Key:              strings.TrimPrefix(*o.Key, s.prefix),
+				LastModifiedUnix: (*o.LastModified).Unix(),
 			})
 		}
 		return true

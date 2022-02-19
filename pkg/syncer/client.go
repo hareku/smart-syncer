@@ -42,16 +42,12 @@ func (c *Client) Run(ctx context.Context, in *ClientRunInput) error {
 	queue := []LocalObject{}
 	for _, v := range localObjects {
 		localObj := v
-		key, err := filepath.Rel(in.Path, localObj.Key)
-		if err != nil {
-			return fmt.Errorf("failed to get relative path of local object: %w", err)
-		}
 
-		repoObj, ok := inRepo[key]
+		repoObj, ok := inRepo[localObj.Key]
 		if ok {
-			delete(inRepo, key)
+			delete(inRepo, localObj.Key)
 		}
-		if ok && localObj.LastModified.Before(repoObj.LastModified) {
+		if ok && localObj.LastModifiedUnix <= repoObj.LastModifiedUnix {
 			continue
 		}
 
@@ -76,7 +72,7 @@ func (c *Client) Run(ctx context.Context, in *ClientRunInput) error {
 		})
 
 		eg.Go(func() error {
-			if err := c.upload(ctx, ch); err != nil {
+			if err := c.upload(ctx, in.Path, ch); err != nil {
 				return fmt.Errorf("uploading failed: %w", err)
 			}
 			return nil
@@ -105,7 +101,7 @@ func (c *Client) Run(ctx context.Context, in *ClientRunInput) error {
 	return nil
 }
 
-func (c *Client) upload(ctx context.Context, ch <-chan LocalObject) error {
+func (c *Client) upload(ctx context.Context, root string, ch <-chan LocalObject) error {
 	for localObj := range ch {
 		if c.Dryrun {
 			continue
@@ -115,7 +111,7 @@ func (c *Client) upload(ctx context.Context, ch <-chan LocalObject) error {
 		eg, ctx := errgroup.WithContext(ctx)
 		eg.Go(func() error {
 			defer pw.Close()
-			if err := c.Archiver.Do(ctx, localObj.Key, pw); err != nil {
+			if err := c.Archiver.Do(ctx, filepath.Join(root, localObj.Key), pw); err != nil {
 				return fmt.Errorf("failed to archive %q: %w", localObj.Key, err)
 			}
 			return nil
