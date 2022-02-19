@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 )
 
+//go:generate mockgen -destination ./${GOPACKAGE}mock/${GOFILE} -package ${GOPACKAGE}mock -source ./${GOFILE}
+
 type LocalObject struct {
 	Key              string
 	LastModifiedUnix int64

@@ -11,6 +11,8 @@ import (
 	"sync"
 )
 
+//go:generate mockgen -destination ./${GOPACKAGE}mock/${GOFILE} -package ${GOPACKAGE}mock -source ./${GOFILE}
+
 type Archiver interface {
 	Do(ctx context.Context, root string, w io.Writer) error
 }

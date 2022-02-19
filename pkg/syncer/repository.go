@@ -5,6 +5,8 @@ import (
 	"io"
 )
 
+//go:generate mockgen -destination ./${GOPACKAGE}mock/${GOFILE} -package ${GOPACKAGE}mock -source ./${GOFILE}
+
 type RepositoryObject struct {
 	Key              string
 	LastModifiedUnix int64
