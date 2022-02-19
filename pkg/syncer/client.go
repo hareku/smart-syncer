@@ -84,7 +84,7 @@ func (c *Client) Run(ctx context.Context, in *ClientRunInput) error {
 	}
 
 	if len(inRepo) > 0 {
-		keys := make([]string, len(inRepo))
+		keys := make([]string, 0, len(inRepo))
 		for _, v := range inRepo {
 			keys = append(keys, v.Key)
 		}

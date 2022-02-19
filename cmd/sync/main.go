@@ -26,6 +26,9 @@ func main() {
 	// s3Client := s3.New(session.Must(session.NewSession(aws.NewConfig().WithRegion("us-west-2"))))
 
 	concurrency := runtime.NumCPU()
+	if concurrency > 5 {
+		concurrency = 5
+	}
 	log.Printf("Running concurrency: %d", concurrency)
 
 	uploader := s3manager.NewUploaderWithClient(s3Client)
