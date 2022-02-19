@@ -63,7 +63,7 @@ func (a *archiver) Do(ctx context.Context, root string, w io.Writer) error {
 		if err != nil {
 			return fmt.Errorf("failed to create tar header for %q: %w", path, err)
 		}
-		h.Name = rel
+		h.Name = filepath.ToSlash(rel)
 		if err := tw.WriteHeader(h); err != nil {
 			return fmt.Errorf("failed to write tar header %+v: %w", h, err)
 		}
