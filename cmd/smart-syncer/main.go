@@ -41,6 +41,10 @@ func main() {
 				Name:     "prefix",
 				Required: true,
 			},
+			&cli.StringFlag{
+				Name:     "storage-class",
+				Required: true,
+			},
 			&cli.BoolFlag{
 				Name: "dryrun",
 			},
@@ -77,10 +81,11 @@ func main() {
 				LocalStorage: syncer.NewLocalStorage(),
 				Archiver:     syncer.NewArchiver(),
 				Repository: syncer.NewRepositoryS3(&syncer.NewRepositoryS3Input{
-					Bucket:   c.String("bucket"),
-					Prefix:   c.String("prefix"),
-					API:      s3Client,
-					Uploader: uploader,
+					Bucket:       c.String("bucket"),
+					Prefix:       c.String("prefix"),
+					StorageClass: c.String("storage-class"),
+					API:          s3Client,
+					Uploader:     uploader,
 				}),
 				Dryrun: c.Bool("dryrun"),
 			}

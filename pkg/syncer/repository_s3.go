@@ -14,25 +14,28 @@ import (
 )
 
 type RepositoryS3 struct {
-	bucket   string
-	prefix   string // prefix with "/" suffix of S3 bucket
-	api      s3iface.S3API
-	uploader s3manageriface.UploaderAPI
+	bucket       string
+	prefix       string // prefix with "/" suffix of S3 bucket
+	storageClass string
+	api          s3iface.S3API
+	uploader     s3manageriface.UploaderAPI
 }
 
 type NewRepositoryS3Input struct {
-	Bucket   string
-	Prefix   string
-	API      s3iface.S3API
-	Uploader s3manageriface.UploaderAPI
+	Bucket       string
+	Prefix       string
+	StorageClass string
+	API          s3iface.S3API
+	Uploader     s3manageriface.UploaderAPI
 }
 
 func NewRepositoryS3(in *NewRepositoryS3Input) Repository {
 	return &RepositoryS3{
-		bucket:   in.Bucket,
-		prefix:   strings.Trim(in.Prefix, "/") + "/",
-		api:      in.API,
-		uploader: in.Uploader,
+		bucket:       in.Bucket,
+		prefix:       strings.Trim(in.Prefix, "/") + "/",
+		storageClass: in.StorageClass,
+		api:          in.API,
+		uploader:     in.Uploader,
 	}
 }
 
@@ -59,9 +62,10 @@ func (s *RepositoryS3) List(ctx context.Context) ([]RepositoryObject, error) {
 
 func (s *RepositoryS3) Upload(ctx context.Context, key string, r io.Reader) error {
 	_, err := s.uploader.UploadWithContext(ctx, &s3manager.UploadInput{
-		Bucket: &s.bucket,
-		Key:    aws.String(strings.TrimPrefix(s.prefix+key, "/")),
-		Body:   r,
+		Bucket:       &s.bucket,
+		Key:          aws.String(strings.TrimPrefix(s.prefix+key, "/")),
+		Body:         r,
+		StorageClass: aws.String(s.storageClass),
 	})
 	if err != nil {
 		return fmt.Errorf("s3 uploading failed: %w", err)

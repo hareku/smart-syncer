@@ -117,6 +117,7 @@ func (c *Client) upload(ctx context.Context, root string, ch <-chan LocalObject)
 			return nil
 		})
 		eg.Go(func() error {
+			defer pr.Close()
 			if err := c.Repository.Upload(ctx, localObj.Key+".tar", pr); err != nil {
 				return fmt.Errorf("failed to upload %q to repository: %w", localObj.Key, err)
 			}
