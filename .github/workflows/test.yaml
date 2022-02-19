@@ -5,7 +5,7 @@ on:
       - main
       - develop
 jobs:
-  goreleaser:
+  testing:
     runs-on: ubuntu-latest
     steps:
       -
