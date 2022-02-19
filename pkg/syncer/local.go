@@ -55,7 +55,7 @@ func (s *localStorage) recurse(ctx context.Context, root string, path string, de
 		}
 
 		*res = append(*res, LocalObject{
-			Key:              key,
+			Key:              filepath.ToSlash(key),
 			LastModifiedUnix: info.ModTime().Unix(),
 		})
 	}

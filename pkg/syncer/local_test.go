@@ -58,7 +58,7 @@ func TestLocalStorage_List(t *testing.T) {
 			require.NoError(t, err)
 			gotKeys := make([]string, len(got))
 			for i, v := range got {
-				gotKeys[i] = filepath.ToSlash(v.Key)
+				gotKeys[i] = v.Key
 			}
 			assert.Equal(t, tt.wantKeys, gotKeys)
 		})
